@@ -4,3 +4,5 @@ test('InvoiceFlow has invoice, finance schedule and collection task data', async
 test('InvoiceFlow binds real API actions while keeping a demo fallback', async()=>{const source=await readFile(new URL('../src/main.js',import.meta.url),'utf8'); assert.match(source,/createApiClient/); assert.match(source,/data-action="checkin"/); assert.match(source,/data-action="status"/); assert.match(source,/data-action="complete-followup"/); assert.match(source,/refreshFromApi/); assert.match(source,/演示数据/)})
 
 test('Vite proxies the default API path to the local Go service', async()=>{const source=await readFile(new URL('../vite.config.js',import.meta.url),'utf8'); assert.match(source,/server/); assert.match(source,/proxy/); assert.match(source,/localhost:8080/)})
+
+test('InvoiceFlow exposes billing queue detail timeline collection and reconcile actions', async()=>{const source=await readFile(new URL('../src/main.js',import.meta.url),'utf8'); assert.match(source,/收款工作台/); assert.match(source,/发票时间线/); assert.match(source,/登记回款/); assert.match(source,/核销发票/); assert.match(source,/openInvoice/)})

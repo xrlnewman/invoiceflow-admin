@@ -84,3 +84,28 @@ test('exposes mobile lifecycle and follow-up operations through the same client'
     '/api/v1/followups/FW-1/complete',
   ])
 })
+
+test('exposes invoice billing lifecycle with idempotent writes', async () => {
+  const requests = []
+  const client = createApiClient({
+    fetchImpl: async (url, init) => {
+      requests.push({ url, init })
+      return response({ id: 'INV-1', status: '已开具', paidCents: 0 })
+    },
+  })
+  await client.listInvoices({ page: 1, pageSize: 20, status: '已开具' })
+  await client.getInvoice('INV-1')
+  await client.createInvoice({ customerName: '星河科技', amountCents: 1000 })
+  await client.updateInvoiceStatus('INV-1', '已开具')
+  await client.addInvoicePayment('INV-1', { amountCents: 1000, method: '银行转账' })
+  await client.reconcileInvoice('INV-1')
+  assert.deepEqual(requests.map(({ url }) => url), [
+    '/api/v1/invoices?page=1&pageSize=20&status=%E5%B7%B2%E5%BC%80%E5%85%B7',
+    '/api/v1/invoices/INV-1',
+    '/api/v1/invoices',
+    '/api/v1/invoices/INV-1/status',
+    '/api/v1/invoices/INV-1/payments',
+    '/api/v1/invoices/INV-1/reconcile',
+  ])
+  assert.equal(requests[4].init.headers['Idempotency-Key'].startsWith('cf-'), true)
+})

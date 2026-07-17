@@ -18,11 +18,19 @@ const demoFollowups = [
   { id: 'TASK-0715-009', patient: '上海岸线设计', summary: '完成月度发票归档', dueAt: '已完成', status: '已完成' },
 ]
 
+const demoInvoices = [
+  { id: 'INV-202607-082', customerName: '杭州星河科技', amountCents: 128000, paidCents: 128000, currency: 'CNY', status: '部分回款', dueDate: '2026-07-20', items: [{ description: '企业软件订阅', quantity: 1, amountCents: 128000 }], payments: [{ id: 'PAY-082-01', amountCents: 128000, method: '银行转账', reference: 'HZ20260716001', receivedAt: '2026-07-16T09:30:00Z' }], events: [{ id: 'EV-082-1', fromStatus: '草稿', toStatus: '待审核', type: 'status', actor: '林然', createdAt: '2026-07-15T08:00:00Z' }, { id: 'EV-082-2', fromStatus: '待审核', toStatus: '已开具', type: 'status', actor: '沈宁', createdAt: '2026-07-15T09:20:00Z' }] },
+  { id: 'INV-202607-081', customerName: '苏州云杉供应链', amountCents: 86000, paidCents: 0, currency: 'CNY', status: '已开具', dueDate: '2026-07-25', items: [{ description: '供应链系统实施服务', quantity: 1, amountCents: 86000 }], payments: [], events: [{ id: 'EV-081-1', fromStatus: '草稿', toStatus: '待审核', type: 'status', actor: '林然', createdAt: '2026-07-15T08:10:00Z' }] },
+  { id: 'INV-202607-080', customerName: '上海岸线设计', amountCents: 42000, paidCents: 42000, currency: 'CNY', status: '已核销', dueDate: '2026-07-18', items: [{ description: '品牌设计服务', quantity: 1, amountCents: 42000 }], payments: [{ id: 'PAY-080-01', amountCents: 42000, method: '支付宝', reference: 'ALIPAY-080', receivedAt: '2026-07-14T10:00:00Z' }], events: [{ id: 'EV-080-1', fromStatus: '已开具', toStatus: '部分回款', type: 'payment', actor: '周宁', createdAt: '2026-07-14T10:00:00Z' }, { id: 'EV-080-2', fromStatus: '部分回款', toStatus: '已核销', type: 'reconcile', actor: '周宁', createdAt: '2026-07-14T10:05:00Z' }] },
+  { id: 'INV-202607-079', customerName: '南京微光传媒', amountCents: 196000, paidCents: 0, currency: 'CNY', status: '待审核', dueDate: '2026-07-30', items: [{ description: '广告投放服务', quantity: 2, amountCents: 196000 }], payments: [], events: [] },
+]
+
 const demoDashboard = { todayAppointments: 86, averageWaitMinutes: 12, completed: 58, checkedIn: 42, pendingFollowups: 12 }
-const statusColors = { 待确认: 'coral', 已确认: 'indigo', 候诊中: 'amber', 处理中: 'green', 已完成: 'green', 已取消: 'gray' }
+const statusColors = { 待确认: 'coral', 已确认: 'indigo', 候诊中: 'amber', 处理中: 'green', 已完成: 'green', 已取消: 'gray', 草稿: 'gray', 待审核: 'amber', 已开具: 'indigo', 部分回款: 'coral', 已核销: 'green', 已归档: 'gray' }
 const nav = [
   ['overview', '运营总览', '⌂'],
   ['queue', '发票队列', '▤'],
+  ['billing', '收款工作台', '¥'],
   ['doctors', '财务专员排班', '◉'],
   ['patients', '客户档案', '♧'],
   ['followups', '跟进任务', '✓'],
@@ -31,6 +39,9 @@ const nav = [
 
 let appointments = demoAppointments.map((item) => ({ ...item }))
 let followupTasks = demoFollowups.map((item) => ({ ...item }))
+let invoices = demoInvoices.map((item) => ({ ...item }))
+let selectedInvoice = null
+let invoiceFilter = ''
 let dashboard = { ...demoDashboard }
 let page = 'overview'
 let toast = ''
@@ -96,10 +107,12 @@ function header(title) {
 
 function render() {
   const title = nav.find((item) => item[0] === page)?.[1] || '运营总览'
-  const content = page === 'overview' ? overview() : page === 'queue' ? queue() : page === 'doctors' ? doctors() : page === 'patients' ? patients() : page === 'followups' ? followups() : mobileView()
+  const content = page === 'overview' ? overview() : page === 'queue' ? queue() : page === 'billing' ? billing() : page === 'doctors' ? doctors() : page === 'patients' ? patients() : page === 'followups' ? followups() : mobileView()
   document.querySelector('#app').innerHTML = `<div class="shell"><aside><div class="brand"><span>¥</span><div><strong>InvoiceFlow</strong><small>发票收款运营中心</small></div></div><div class="clinic">● 上海静安联合财务中心　⌄</div><p class="caption">临床运营</p><nav>${nav.map((item) => `<button class="${page === item[0] ? 'active' : ''}" data-page="${item[0]}"><i>${item[2]}</i>${item[1]}${item[0] === 'queue' ? '<em>8</em>' : ''}</button>`).join('')}</nav><div class="user"><b>许</b><span><strong>许汝林</strong><small>运营管理员</small></span></div></aside><main>${header(title)}<section class="heading"><div><p>THURSDAY, JUL 16 · INVOICEFLOW</p><h1>${title} <i>✦</i></h1><label>让每一次发票，都有被照顾的下一步。</label></div><button class="primary" data-action="create-appointment">＋ 新建发票</button></section>${content}<footer>InvoiceFlow 发票收款运营 · 免费开源 · 演示数据不含诊断与真实客户信息</footer><div class="toast" ${toast ? '' : 'hidden'}>${toast}</div></main></div>`
   const root = document.querySelector('#app')
   displayCopy(root)
+  const filter = document.querySelector('[data-invoice-filter]')
+  if (filter) { filter.value = invoiceFilter; filter.addEventListener('change', () => { invoiceFilter = filter.value; render() }) }
   bind()
 }
 
@@ -109,6 +122,14 @@ function overview() {
 
 function queue() {
   return `<section class="panel full"><div class="panel-head"><div><h2>发票队列</h2><p>${dataSource === 'API 数据' ? 'API 实时发票' : '20 条演示发票'} · 支持确认、候诊、处理和完成</p></div><span class="chip">今天　⌄</span></div><div class="table"><div class="th"><span>发票编号 / 客户</span><span>科室</span><span>时间</span><span>状态</span><span>操作</span></div>${appointments.concat(dataSource === 'API 数据' ? [] : appointments.slice(0, 3)).map((appointment) => `<div class="tr"><span><strong>${appointment.id}</strong><small>${appointment.patient}</small></span><span>${appointment.department}</span><span>${timeLabel(appointment.scheduledAt)}</span><b class="status ${statusColors[appointment.status] || 'indigo'}">${appointment.status}</b><span>${appointmentAction(appointment)}</span></div>`).join('')}</div></section>`
+}
+
+function money(cents) { return `¥${(Number(cents || 0) / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}` }
+
+function billing() {
+  const current = selectedInvoice
+  const visible = invoiceFilter ? invoices.filter((item) => item.status === invoiceFilter) : invoices
+  return `<section class="grid billing-grid"><article class="panel full"><div class="panel-head"><div><h2>收款工作台</h2><p>${dataSource === 'API 数据' ? 'API 实时发票' : '4 条演示发票'} · 开票、回款、核销一条线闭环</p></div><select class="chip" data-invoice-filter><option value="">全部状态</option><option value="待审核">待审核</option><option value="已开具">已开具</option><option value="部分回款">部分回款</option><option value="已核销">已核销</option></select></div><div class="table"><div class="th"><span>发票编号 / 客户</span><span>应收金额</span><span>已回款</span><span>状态</span><span>操作</span></div>${visible.map((invoice) => `<div class="tr"><span><strong>${invoice.id}</strong><small>${invoice.customerName}</small></span><span>${money(invoice.amountCents)}</span><span>${money(invoice.paidCents)}</span><b class="status ${statusColors[invoice.status] || 'indigo'}">${invoice.status}</b><button class="text-action" data-action="open-invoice" data-invoice-id="${invoice.id}">查看详情</button></div>`).join('') || '<div class="muted">暂无匹配发票</div>'}</div></article>${current ? `<article class="panel invoice-detail"><div class="panel-head"><div><h2>${current.customerName}</h2><p>${current.id} · 到期 ${current.dueDate || '--'}</p></div><b class="status ${statusColors[current.status] || 'indigo'}">${current.status}</b></div><div class="detail-amount"><span>应收 ${money(current.amountCents)}</span><strong>已回款 ${money(current.paidCents)}</strong></div><div class="detail-actions"><button class="primary small" data-action="invoice-payment" data-invoice-id="${current.id}">登记回款</button><button class="secondary small" data-action="invoice-reconcile" data-invoice-id="${current.id}">核销发票</button></div><h3>发票时间线</h3><div class="invoice-events">${(current.events || []).map((event) => `<div class="event"><i></i><div><strong>${event.toStatus || event.type}</strong><small>${event.actor || '系统'} · ${event.createdAt || '--'}</small></div></div>`).join('') || '<p class="muted">暂无状态事件</p>'}</div></article>` : '<article class="panel invoice-detail empty"><h2>选择一张发票</h2><p>查看明细、事件时间线并登记回款或完成核销。</p></article>'}</section>`
 }
 
 function doctors() {
@@ -132,14 +153,16 @@ async function refreshFromApi({ quiet = false } = {}) {
   isSyncing = true
   render()
   try {
-    const [nextDashboard, nextAppointments, nextFollowups] = await Promise.all([
+    const [nextDashboard, nextAppointments, nextFollowups, nextInvoices] = await Promise.all([
       api.getDashboard(),
       api.listAppointments({ page: 1, pageSize: 20 }),
       api.listFollowups({ page: 1, pageSize: 20 }),
+      api.listInvoices({ page: 1, pageSize: 20 }),
     ])
     dashboard = { ...demoDashboard, ...nextDashboard }
     appointments = (nextAppointments?.list || []).map(normalizeAppointment)
     followupTasks = (nextFollowups?.list || []).map(normalizeFollowup)
+    invoices = (nextInvoices?.list || []).map((item) => ({ ...item, items: item.items || [], payments: item.payments || [], events: item.events || [] }))
     dataSource = 'API 数据'
     if (!quiet) toast = '已从 InvoiceFlow API 刷新数据'
   } catch (error) {
@@ -149,6 +172,45 @@ async function refreshFromApi({ quiet = false } = {}) {
     isSyncing = false
     render()
   }
+}
+
+async function openInvoice(button) {
+  const id = button.dataset.invoiceId
+  try {
+    selectedInvoice = await api.getInvoice(id)
+    dataSource = 'API 数据'
+  } catch (error) {
+    selectedInvoice = invoices.find((item) => item.id === id) || null
+    showToast(`发票详情接口暂不可用：${error.message}`)
+    return
+  }
+  render()
+}
+
+async function registerInvoicePayment(button) {
+  const invoice = invoices.find((item) => item.id === button.dataset.invoiceId) || selectedInvoice
+  if (!invoice) return
+  const amount = Math.max(1, Number(invoice.amountCents || 0) - Number(invoice.paidCents || 0))
+  try {
+    await api.addInvoicePayment(invoice.id, { amountCents: amount, method: '银行转账', reference: `DEMO-${invoice.id}` })
+    selectedInvoice = await api.getInvoice(invoice.id)
+    invoices = invoices.map((item) => item.id === selectedInvoice.id ? selectedInvoice : item)
+    dataSource = 'API 数据'
+    showToast('回款已登记，等待核销')
+    render()
+  } catch (error) { showToast(`登记回款失败：${error.message}`) }
+}
+
+async function reconcileInvoice(button) {
+  const id = button.dataset.invoiceId
+  try {
+    await api.reconcileInvoice(id, '财务人员')
+    selectedInvoice = await api.getInvoice(id)
+    invoices = invoices.map((item) => item.id === id ? selectedInvoice : item)
+    dataSource = 'API 数据'
+    showToast('发票已完成核销')
+    render()
+  } catch (error) { showToast(`核销失败：${error.message}`) }
 }
 
 function replaceAppointment(updated) {
@@ -210,6 +272,9 @@ function bind() {
   document.querySelectorAll('[data-action]').forEach((element) => element.addEventListener('click', () => {
     if (element.dataset.action === 'checkin' || element.dataset.action === 'status') return advanceAppointment(element)
     if (element.dataset.action === 'complete-followup') return completeFollowup(element)
+    if (element.dataset.action === 'open-invoice') return openInvoice(element)
+    if (element.dataset.action === 'invoice-payment') return registerInvoicePayment(element)
+    if (element.dataset.action === 'invoice-reconcile') return reconcileInvoice(element)
     if (element.dataset.action === 'create-appointment') return createAppointment()
     return undefined
   }))

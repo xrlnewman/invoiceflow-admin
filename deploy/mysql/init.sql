@@ -98,3 +98,47 @@ INSERT IGNORE INTO followups (id,patient_id,patient_name,summary,due_at,status,c
  ('FW-0716-010','PT-010','演示客户10','满意度回访','2026-07-21','待完成','2026-07-16T00:00:00Z','2026-07-16T00:00:00Z'),
  ('FW-0716-011','PT-011','演示客户11','复诊提醒','2026-07-22','待完成','2026-07-16T00:00:00Z','2026-07-16T00:00:00Z'),
  ('FW-0716-012','PT-012','演示客户12','康复计划提醒','2026-07-22','待完成','2026-07-16T00:00:00Z','2026-07-16T00:00:00Z');
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id VARCHAR(64) PRIMARY KEY,
+  customer_id VARCHAR(64) NOT NULL DEFAULT '',
+  customer_name VARCHAR(128) NOT NULL,
+  tax_number VARCHAR(64) NOT NULL DEFAULT '',
+  currency VARCHAR(8) NOT NULL DEFAULT 'CNY',
+  amount_cents BIGINT NOT NULL,
+  paid_cents BIGINT NOT NULL DEFAULT 0,
+  due_date VARCHAR(32) NOT NULL DEFAULT '',
+  status VARCHAR(32) NOT NULL,
+  created_at VARCHAR(64) NOT NULL,
+  updated_at VARCHAR(64) NOT NULL,
+  INDEX idx_invoices_status_created (status, created_at)
+);
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id VARCHAR(64) PRIMARY KEY,
+  invoice_id VARCHAR(64) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL,
+  unit_price_cents BIGINT NOT NULL,
+  amount_cents BIGINT NOT NULL,
+  INDEX idx_invoice_items_invoice (invoice_id)
+);
+CREATE TABLE IF NOT EXISTS invoice_payments (
+  id VARCHAR(64) PRIMARY KEY,
+  invoice_id VARCHAR(64) NOT NULL,
+  amount_cents BIGINT NOT NULL,
+  method VARCHAR(32) NOT NULL,
+  reference VARCHAR(128) NOT NULL DEFAULT '',
+  received_at VARCHAR(64) NOT NULL,
+  INDEX idx_invoice_payments_invoice (invoice_id, received_at)
+);
+CREATE TABLE IF NOT EXISTS invoice_events (
+  id VARCHAR(64) PRIMARY KEY,
+  invoice_id VARCHAR(64) NOT NULL,
+  from_status VARCHAR(32) NOT NULL DEFAULT '',
+  to_status VARCHAR(32) NOT NULL,
+  type VARCHAR(32) NOT NULL,
+  actor VARCHAR(64) NOT NULL,
+  note VARCHAR(255) NOT NULL DEFAULT '',
+  created_at VARCHAR(64) NOT NULL,
+  INDEX idx_invoice_events_invoice (invoice_id, created_at)
+);

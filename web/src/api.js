@@ -66,6 +66,12 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch } = {}) 
     listFollowups: (query) => request(withQuery('/followups', query)),
     createFollowup: (input, idempotencyKey) => request('/followups', { method: 'POST', body: input, idempotencyKey }),
     completeFollowup: (id, idempotencyKey) => request(`/followups/${encodeURIComponent(id)}/complete`, { method: 'POST', idempotencyKey }),
+    listInvoices: (query) => request(withQuery('/invoices', query)),
+    getInvoice: (id) => request(`/invoices/${encodeURIComponent(id)}`),
+    createInvoice: (input, idempotencyKey) => request('/invoices', { method: 'POST', body: input, idempotencyKey }),
+    updateInvoiceStatus: (id, status, actor, idempotencyKey) => request(`/invoices/${encodeURIComponent(id)}/status`, { method: 'POST', body: { status, ...(actor ? { actor } : {}) }, idempotencyKey }),
+    addInvoicePayment: (id, input, idempotencyKey) => request(`/invoices/${encodeURIComponent(id)}/payments`, { method: 'POST', body: input, idempotencyKey }),
+    reconcileInvoice: (id, actor, idempotencyKey) => request(`/invoices/${encodeURIComponent(id)}/reconcile`, { method: 'POST', headers: actor ? { 'X-Actor': actor } : {}, idempotencyKey }),
   }
 }
 

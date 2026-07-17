@@ -80,3 +80,49 @@ func TestFollowupCompletesOnce(t *testing.T) {
 		t.Fatalf("expected invalid completion, got %v", err)
 	}
 }
+
+func TestInvoiceLifecycleRecordsEventsPaymentsAndReconcile(t *testing.T) {
+	store := NewMemoryStore()
+	svc := NewInvoiceService(store, NoopIdempotency{})
+	ctx := context.Background()
+	invoice, err := svc.CreateInvoice(ctx, CreateInvoiceInput{CustomerName: "星河科技", AmountCents: 128000, Items: []InvoiceItemInput{{Description: "软件服务", Quantity: 1, UnitPriceCents: 128000}}}, "invoice-create-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, status := range []string{InvoicePendingReview, InvoiceIssued} {
+		invoice, err = svc.UpdateInvoiceStatus(ctx, invoice.ID, status, "财务", "invoice-status-"+status)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	invoice, _, err = svc.AddInvoicePayment(ctx, invoice.ID, AddInvoicePaymentInput{AmountCents: 128000, Method: "银行转账", Reference: "PAY-001"}, "invoice-pay-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if invoice.PaidCents != 128000 || invoice.Status != InvoicePartiallyPaid {
+		t.Fatalf("paid/status = %d/%s", invoice.PaidCents, invoice.Status)
+	}
+	invoice, _, err = svc.ReconcileInvoice(ctx, invoice.ID, "财务", "invoice-reconcile-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if invoice.Status != InvoiceReconciled {
+		t.Fatalf("status = %s", invoice.Status)
+	}
+	detail, err := store.GetInvoice(ctx, invoice.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Items) != 1 || len(detail.Payments) != 1 || len(detail.Events) < 4 {
+		t.Fatalf("detail = %+v", detail)
+	}
+}
+
+func TestInvoiceWritesRequireIdempotencyKey(t *testing.T) {
+	store := NewMemoryStore()
+	svc := NewInvoiceService(store, NoopIdempotency{})
+	_, err := svc.CreateInvoice(context.Background(), CreateInvoiceInput{CustomerName: "无幂等键", AmountCents: 100}, "")
+	if !errors.Is(err, ErrMissingIdempotencyKey) {
+		t.Fatalf("expected missing idempotency key, got %v", err)
+	}
+}

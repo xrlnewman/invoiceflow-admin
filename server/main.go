@@ -50,6 +50,11 @@ func NewRouter(store CareStore, idem idempotencyStore) *gin.Engine {
 		c.Next()
 	})
 	svc := NewCareService(store, idem)
+	invoiceStore, hasInvoiceStore := store.(InvoiceStore)
+	var invoiceSvc *InvoiceService
+	if hasInvoiceStore {
+		invoiceSvc = NewInvoiceService(invoiceStore, idem)
+	}
 
 	r.GET("/healthz", func(c *gin.Context) {
 		respond(c, http.StatusOK, gin.H{"service": "invoiceflow", "status": "ok", "time": time.Now().UTC()})
@@ -176,6 +181,94 @@ func NewRouter(store CareStore, idem idempotencyStore) *gin.Engine {
 			return
 		}
 		respond(c, http.StatusOK, f)
+	})
+	api.GET("/invoices", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		page, pageSize := pageParams(c)
+		list, total, err := invoiceStore.ListInvoices(c.Request.Context(), page, pageSize, c.Query("status"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusOK, pageData(list, total, page, pageSize))
+	})
+	api.GET("/invoices/:id", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		invoice, err := invoiceStore.GetInvoice(c.Request.Context(), c.Param("id"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusOK, invoice)
+	})
+	api.POST("/invoices", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		var input CreateInvoiceInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			fail(c, errors.Join(ErrInvalidInput, err))
+			return
+		}
+		invoice, err := invoiceSvc.CreateInvoice(c.Request.Context(), input, c.GetHeader("Idempotency-Key"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusCreated, invoice)
+	})
+	api.POST("/invoices/:id/status", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		var input InvoiceStatusInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			fail(c, errors.Join(ErrInvalidInput, err))
+			return
+		}
+		invoice, err := invoiceSvc.UpdateInvoiceStatus(c.Request.Context(), c.Param("id"), input.Status, input.Actor, c.GetHeader("Idempotency-Key"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusOK, invoice)
+	})
+	api.POST("/invoices/:id/payments", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		var input AddInvoicePaymentInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			fail(c, errors.Join(ErrInvalidInput, err))
+			return
+		}
+		invoice, payment, err := invoiceSvc.AddInvoicePayment(c.Request.Context(), c.Param("id"), input, c.GetHeader("Idempotency-Key"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusCreated, gin.H{"invoice": invoice, "payment": payment})
+	})
+	api.POST("/invoices/:id/reconcile", func(c *gin.Context) {
+		if invoiceSvc == nil {
+			fail(c, ErrInvalidInput)
+			return
+		}
+		invoice, _, err := invoiceSvc.ReconcileInvoice(c.Request.Context(), c.Param("id"), c.GetHeader("X-Actor"), c.GetHeader("Idempotency-Key"))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		respond(c, http.StatusOK, invoice)
 	})
 	return r
 }
