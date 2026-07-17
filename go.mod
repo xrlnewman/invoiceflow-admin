@@ -1,4 +1,4 @@
-module github.com/xrlnewman/careflow-admin
+module github.com/xrlnewman/invoiceflow-admin
 
 go 1.25
 
