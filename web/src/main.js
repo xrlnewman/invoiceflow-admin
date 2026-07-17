@@ -4,18 +4,18 @@ import { createApiClient } from './api.js'
 const api = createApiClient()
 
 const demoAppointments = [
-  { id: 'AP-0716-082', patient: '林晓雨', department: '全科门诊', doctor: '林负责人', scheduledAt: '2026-07-16T09:30:00+08:00', status: '候诊中' },
-  { id: 'AP-0716-081', patient: '沈明远', department: '皮肤科', doctor: '沈负责人', scheduledAt: '2026-07-16T09:45:00+08:00', status: '已确认' },
-  { id: 'AP-0716-080', patient: '赵思涵', department: '康复理疗', doctor: '赵负责人', scheduledAt: '2026-07-16T10:00:00+08:00', status: '已完成' },
-  { id: 'AP-0716-079', patient: '周子昂', department: '全科门诊', doctor: '林负责人', scheduledAt: '2026-07-16T10:15:00+08:00', status: '待确认' },
-  { id: 'AP-0716-078', patient: '许安然', department: '营养咨询', doctor: '周负责人', scheduledAt: '2026-07-16T10:30:00+08:00', status: '待确认' },
+  { id: 'INV-0716-082', patient: '杭州星河科技', department: '增值税专票', doctor: '林然 · 财务专员', scheduledAt: '2026-07-16T09:30:00+08:00', status: '候诊中' },
+  { id: 'INV-0716-081', patient: '苏州云杉供应链', department: '电子普票', doctor: '沈宁 · 结算专员', scheduledAt: '2026-07-16T09:45:00+08:00', status: '已确认' },
+  { id: 'INV-0716-080', patient: '上海岸线设计', department: '服务费发票', doctor: '赵然 · 财务专员', scheduledAt: '2026-07-16T10:00:00+08:00', status: '已完成' },
+  { id: 'INV-0716-079', patient: '南京微光传媒', department: '广告费发票', doctor: '林然 · 财务专员', scheduledAt: '2026-07-16T10:15:00+08:00', status: '待确认' },
+  { id: 'INV-0716-078', patient: '成都山海咨询', department: '咨询费发票', doctor: '周宁 · 结算专员', scheduledAt: '2026-07-16T10:30:00+08:00', status: '待确认' },
 ]
 
 const demoFollowups = [
-  { id: 'FW-0716-012', patient: '林晓雨', summary: '术后一周恢复提醒', dueAt: '今天 16:00', status: '待完成' },
-  { id: 'FW-0716-011', patient: '周子昂', summary: '用药依从性回访', dueAt: '今天 17:30', status: '待完成' },
-  { id: 'FW-0716-010', patient: '沈明远', summary: '皮肤复诊提醒', dueAt: '明天 09:30', status: '待完成' },
-  { id: 'FW-0715-009', patient: '赵思涵', summary: '康复训练记录', dueAt: '已完成', status: '已完成' },
+  { id: 'TASK-0716-012', patient: '杭州星河科技', summary: '核对销项税额与开票信息', dueAt: '今天 16:00', status: '待完成' },
+  { id: 'TASK-0716-011', patient: '南京微光传媒', summary: '跟进客户回款凭证', dueAt: '今天 17:30', status: '待完成' },
+  { id: 'TASK-0716-010', patient: '苏州云杉供应链', summary: '补齐合同与发票附件', dueAt: '明天 09:30', status: '待完成' },
+  { id: 'TASK-0715-009', patient: '上海岸线设计', summary: '完成月度发票归档', dueAt: '已完成', status: '已完成' },
 ]
 
 const demoDashboard = { todayAppointments: 86, averageWaitMinutes: 12, completed: 58, checkedIn: 42, pendingFollowups: 12 }
@@ -23,9 +23,9 @@ const statusColors = { 待确认: 'coral', 已确认: 'indigo', 候诊中: 'ambe
 const nav = [
   ['overview', '运营总览', '⌂'],
   ['queue', '发票队列', '▤'],
-  ['doctors', '负责人排班', '◉'],
+  ['doctors', '财务专员排班', '◉'],
   ['patients', '客户档案', '♧'],
-  ['followups', '回访任务', '✓'],
+  ['followups', '跟进任务', '✓'],
   ['mobile', '移动端体验', '⌁'],
 ]
 
