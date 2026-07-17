@@ -39,7 +39,7 @@ let dataSource = '演示数据'
 let isSyncing = false
 
 function displayCopy(root) {
-  const rules = [['候诊', '处理'], ['回访', '跟进'], ['健康', '账款'], ['临床', '财务'], ['科室', '发票类型'], ['人次', '笔']]
+  const rules = [['候诊', '处理'], ['回访', '跟进'], ['健康', '账款'], ['临床', '财务'], ['科室', '发票类型'], ['人次', '笔'], ['林负责人', '林然 · 财务专员'], ['沈负责人', '沈宁 · 结算专员'], ['赵负责人', '赵然 · 财务专员'], ['周负责人', '周宁 · 结算专员'], ['陈负责人', '陈敏 · 财务专员'], ['王负责人', '王可 · 结算专员'], ['全科门诊', '增值税专票'], ['皮肤科', '电子普票'], ['康复理疗', '服务费发票'], ['营养咨询', '咨询费发票'], ['就诊', '开票'], ['CF-', 'CUS-']]
   const walker = document.createTreeWalker(root, 4)
   while (walker.nextNode()) rules.forEach(([from, to]) => { walker.currentNode.nodeValue = walker.currentNode.nodeValue.replaceAll(from, to) })
 }
@@ -190,7 +190,7 @@ async function completeFollowup(button) {
 
 async function createAppointment() {
   try {
-    const created = await api.createAppointment({ patient: '移动端演示客户', patientId: 'PT-MOBILE-DEMO', department: '全科门诊', doctor: '林负责人', scheduledAt: new Date().toISOString() })
+    const created = await api.createAppointment({ patient: '移动端演示客户', patientId: 'CUS-MOBILE-DEMO', department: '增值税专票', doctor: '林然 · 财务专员', scheduledAt: new Date().toISOString() })
     appointments = [normalizeAppointment(created), ...appointments]
     dataSource = 'API 数据'
     showToast('发票已创建，可继续在移动端完成确认')
